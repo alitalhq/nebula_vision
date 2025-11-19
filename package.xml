@@ -1,15 +1,28 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>nebula_vision</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="alitqlhq@gmail.com">alitalha</maintainer>
-  <license>TODO: License declaration</license>
+  <version>1.0.0</version>
+  <description>Camera driver node (OpenCV + cv_bridge) publishing images and custom HSS CameraInfo.</description>
+
+  <maintainer email="alitqlhq@gmail.com">alitalhq</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_python</buildtool_depend>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>cv_bridge</depend>
+  <depend>camera_info_manager_py</depend>
+  <exec_depend>camera_calibration_parsers</exec_depend>
+  <depend>rcl_interfaces</depend>
+
+  <depend>nebula_interfaces</depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
