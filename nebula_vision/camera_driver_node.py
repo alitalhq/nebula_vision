@@ -548,6 +548,5 @@ def main(args=None) -> None:
         if rclpy.ok(): # rclpy hala çalışıyorsa (henüz kapanmamışsa)
             rclpy.shutdown() # ROS 2 Python istemcisini kapatır
 
-
 if __name__ == "__main__":
     main()
