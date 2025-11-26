@@ -23,13 +23,9 @@ setup(
     maintainer_email='alitqlhq@gmail.com',
     description='Nebula Vision nodes (camera driver, vision processor).',
     license='MIT',
-    extras_require={
-        'test': [
-            'pytest',
-        ],
-    },
     entry_points={
         'console_scripts': [
+            'camera_driver = nebula_vision.camera_driver_node:main'
         ],
     },
 )
