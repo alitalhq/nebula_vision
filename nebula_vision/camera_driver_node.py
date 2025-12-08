@@ -32,15 +32,15 @@ except Exception:
 
 class CameraDriverNode(Node):
     def __init__(self) -> None:
-        super().__init__("camera_driver")
+        super().__init__("camera_driver_node")
 
         self.declare_parameter("profiles_file", "")
         self.declare_parameter("profile", "")
 
         self.declare_parameter("camera_id", 0)
-        self.declare_parameter("frame_rate", 30.0)
+        self.declare_parameter("frame_rate", 60.0)
         self.declare_parameter("camera_info_url", "package://nebula_vision/calib/internal.yaml")
-        self.declare_parameter("frame_id", "camera_optical_frame") # kalibrasyondan sonra düzeltmeyi unutma
+        self.declare_parameter("frame_id", "internal_camera_optical_frame") # kalibrasyondan sonra düzeltmeyi unutma
         self.declare_parameter("image_width", 1280)
         self.declare_parameter("image_height", 720)
         self.declare_parameter("fourcc", "MJPG")
@@ -345,7 +345,7 @@ class CameraDriverNode(Node):
         if (
             self.camera_info_msg_.width
             and self.camera_info_msg_.height
-            and (self.camera_info_msg_.width != self.image_width
+            and (self.camera_info_msg_.width != self.image_width_
                  or self.camera_info_msg_.height != self.image_height_)
         ):
             if not self._calib_mismatch_warned_:
