@@ -38,7 +38,7 @@ class CameraDriverNode(Node):
         self.declare_parameter("profile", "")
 
         self.declare_parameter("camera_id", 0)
-        self.declare_parameter("frame_rate", 60.0)
+        self.declare_parameter("frame_rate", 30.0)
         self.declare_parameter("camera_info_url", "package://nebula_vision/calib/internal.yaml")
         self.declare_parameter("frame_id", "internal_camera_optical_frame") # kalibrasyondan sonra düzeltmeyi unutma
         self.declare_parameter("image_width", 1280)
@@ -213,7 +213,7 @@ class CameraDriverNode(Node):
             self.get_logger().warning(
                 f"Geçersiz çözünürlük ({self.image_width_}x{self.image_height_}). 640x480 olarak ayarlanıyor."
             )
-            self.image_width_, self.image_height_ = 640, 480
+            self.image_width_, self.image_height_ = 1280, 720
 
         if len(self.fourcc_) < 4:
             self.get_logger().warning(f"FOURCC='{self.fourcc_}' geçersiz. 'MJPG' olarak ayarlanıyor.")

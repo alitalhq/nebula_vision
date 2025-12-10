@@ -1,7 +1,7 @@
 profiles:
   internal:
     camera_id: 0
-    frame_rate: 60.0
+    frame_rate: 30.0
     image_width: 1280
     image_height: 720
     fourcc: MJPG
