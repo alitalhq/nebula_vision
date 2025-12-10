@@ -2,7 +2,7 @@
 <package format="3">
   <name>nebula_vision</name>
   <version>1.0.0</version>
-  <description>Camera driver node (OpenCV + cv_bridge) publishing images and custom HSS CameraInfo.</description>
+  <description>Camera driver node (OpenCV + cv_bridge) publishing images and custom Nebula CameraInfo.</description>
 
   <maintainer email="alitqlhq@gmail.com">alitalhq</maintainer>
   <license>MIT</license>

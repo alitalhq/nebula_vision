@@ -25,8 +25,10 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'camera_driver_node = nebula_vision.camera_driver_node:main',
-            'vision_processor_node = nebula_vision.vision_processor_node:main'
+            'camera_driver = nebula_vision.camera_driver_node:main',
+            'vision_processor_node = nebula_vision.vision_processor_node:main',
+            'vision_processor_node_beta = nebula_vision.vision_processor_node_beta:main'
+            
         ],
     },
 )
