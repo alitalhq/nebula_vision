@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from nebula_interfaces.msg import Target
 
-class ColorDetector:
+class RectangleDetector:
     """
     Belirli bir renk aralığındaki nesneleri tespit eder.
     """
