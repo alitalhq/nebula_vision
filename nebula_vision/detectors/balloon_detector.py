@@ -58,11 +58,11 @@ class BalloonDetector:
                 continue
 
             (x, y), radius = cv2.minEnclosingCircle(c)
-            if radius < 8:
+            if radius < 6:
                 continue
 
             # --- Confidence ---
-            confidence = min(1.0, (area / img_area) * 8.0)
+            confidence = np.clip(circularity, 0.0, 1.0)
 
             b = Balloon()
             b.id = idx
@@ -82,7 +82,7 @@ class BalloonDetector:
         # --- Nişangah (+) ---
         cx, cy = W // 2, H // 2
         size = 12
-        cv2.line(debug, (cx - size, cy), (cx + size, cy), (0, 255, 0), 1)
-        cv2.line(debug, (cx, cy - size), (cx, cy + size), (0, 255, 0), 1)
+        cv2.line(debug, (cx - size, cy), (cx + size, cy), (0, 255, 0), 2)
+        cv2.line(debug, (cx, cy - size), (cx, cy + size), (0, 255, 0), 2)
 
         return balloons, debug
