@@ -14,7 +14,7 @@ from rclpy.qos import (
 from rcl_interfaces.msg import SetParametersResult
 
 from sensor_msgs.msg import Image, CameraInfo
-from nebula_interfaces.msg import TargetArray, GimbalMode
+from nebula_interfaces.msg import BalloonArray, RectangleArray, GimbalMode
 from cv_bridge import CvBridge
 import cv2
 
@@ -22,19 +22,11 @@ import cv2
 from .detectors.balloon_detector import BalloonDetector
 from .detectors.rectangle_detector import RectangleDetector
 
-try:
-    from .detectors.tank_detector import TankDetector
-    _HAS_YOLO = True
-except Exception:
-    TankDetector = None
-    _HAS_YOLO = False
-
-
 
 class VisionProcessorNode(Node):
     """
-    /camera/image_raw -> /vision/balloons, /vision/image_processed
-    Bu node sadece kırmızı balon tespiti yapar.
+    /camera/image_raw, /camera/camera_info, /gimbal/mode    ->
+    /vision/balloons, /vision/rectangles, /vision/image_processed
     """
 
     def __init__(self):
@@ -51,15 +43,9 @@ class VisionProcessorNode(Node):
         self.declare_parameter("rectangle_lower_hsv", [0, 100, 100])
         self.declare_parameter("rectangle_upper_hsv", [10, 255, 255])
 
-        self.declare_parameter("yolo.model_path", "yolo.pt")
-        self.declare_parameter("yolo.conf_thres", 0.25)
-        self.declare_parameter("yolo.iou_thres", 0.45)
-        self.declare_parameter("yolo.classes", [])
-        self.declare_parameter("yolo.device", "cpu")
-
         self.bridge = CvBridge()
         self.frame_counter = 0
-        self.gimbal_mode = GimbalMode.MODE_SAFE
+        self.gimbal_mode = GimbalMode.MODE_LASER #kod testleri bitince burayı MODE_SAFE yapmayı unutma!!!
 
         # CameraInfo cache
         self.have_caminfo = False
@@ -88,15 +74,17 @@ class VisionProcessorNode(Node):
         info_qos.reliability = QoSReliabilityPolicy.RELIABLE
         info_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
 
-        targets_qos = QoSProfile(depth=10)
-        targets_qos.reliability = QoSReliabilityPolicy.RELIABLE   #target_qos güncellenip bölünecek
+        vision_qos = QoSProfile(depth=1)
+        vision_qos.reliability = QoSReliabilityPolicy.BEST_EFFORT
 
         debug_qos = QoSProfile(depth=1)
         debug_qos.reliability = QoSReliabilityPolicy.BEST_EFFORT
         debug_qos.lifespan = Duration(seconds=0.15)
 
-        mode_qos = QoSProfile(depth=10)
-        mode_qos.reliability = QoSReliabilityPolicy.RELIABLE   #mode_qos güncellenecek
+        mode_qos = QoSProfile(depth=1)
+        mode_qos.reliability = QoSReliabilityPolicy.RELIABLE
+        mode_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+
 
         # ---------- Subscribers ----------
         self.state_sub = self.create_subscription(GimbalMode,"/gimbal/mode", self.mode_callback, mode_qos)
@@ -104,13 +92,14 @@ class VisionProcessorNode(Node):
         self.info_sub = self.create_subscription(CameraInfo, "/camera/camera_info", self.info_callback, info_qos)
 
         # ---------- Publishers ----------
-        self.target_pub = self.create_publisher(TargetArray, "/vision/balloons", targets_qos)
+        self.balloon_pub = self.create_publisher(BalloonArray, "/vision/balloons", vision_qos)
+        self.rectangle_pub = self.create_publisher(RectangleArray, "/vision/rectangles", vision_qos)
         self.processed_image_pub = self.create_publisher(Image, "/vision/image_processed", debug_qos)
 
         # Dinamik parametre callback
         self.add_on_set_parameters_callback(self._on_param_update)
 
-        self.get_logger().info("Internal Vision Node hazır (sadece color detector).")
+        self.get_logger().info("Vision Node hazır.")
 
     # ---------- Yardımcı ----------
     def _get_int_list_param(self, name, default):
@@ -149,18 +138,10 @@ class VisionProcessorNode(Node):
             self.cy = msg.k[5]
         self.have_caminfo = True
 
-
-
-
-
-
-
-
-
-
-
     # ---------- Image ----------
     def image_callback(self, msg: Image):
+
+        debug_img = None
 
         if self.skip_n > 0 and (self.frame_counter % (self.skip_n + 1)) != 0:
             self.frame_counter += 1
@@ -168,6 +149,9 @@ class VisionProcessorNode(Node):
         self.frame_counter += 1
 
         if self.b_detector is None and self.r_detector is None:
+            return
+        
+        if self.gimbal_mode not in (GimbalMode.MODE_LASER, GimbalMode.MODE_SEARCH):
             return
 
         try:
@@ -178,71 +162,46 @@ class VisionProcessorNode(Node):
 
         if self.gimbal_mode == GimbalMode.MODE_LASER:
             try:
-                targets, debug_img = self.b_detector.detect(cv_image, msg.header)
+                balloons, debug_img = self.b_detector.detect(cv_image, msg.header)
             except Exception as e:
                 self.get_logger().error(f"Balloon detector çalışma hatası: {e}")
                 return
             
-        elif self.gimbal_mode == GimbalMode.MODE_LASER:
+            if balloons:
+                b_tarr = BalloonArray()
+                b_tarr.header = msg.header
+                b_tarr.balloons = balloons
+                self.balloon_pub.publish(b_tarr)
+            
+        elif self.gimbal_mode == GimbalMode.MODE_SEARCH:
             try:
-                targets, debug_img = self.r_detector.detect(cv_image, msg.header)
+                rectangles, debug_img = self.r_detector.detect(cv_image, msg.header)
             except Exception as e:
                 self.get_logger().error(f"Rectangle detector çalışma hatası: {e}")
                 return
-            
-            try:
-                targets, debug_img = self.t_detector.detect(cv_image, msg.header)
-            except Exception as e:
-                self.get_logger().error(f"Tank detector çalışma hatası: {e}")
-                return
-
-        # Target publish
-        if targets:
-            tarr = TargetArray()
-            tarr.header = msg.header
-            tarr.targets = targets
-            self.target_pub.publish(tarr)
+            if rectangles:
+                r_tarr = RectangleArray()
+                r_tarr.header = msg.header
+                r_tarr.rectangles = rectangles
+                self.rectangle_pub.publish(r_tarr)
 
         # Debug görüntüsü
-        if self.publish_overlay:
+        if self.publish_overlay and debug_img is not None:
             try:
-                if debug_img is not None:
-                    if len(debug_img.shape) == 2:
-                        out = self.bridge.cv2_to_imgmsg(debug_img, encoding="mono8")
-                    else:
-                        out = self.bridge.cv2_to_imgmsg(debug_img, encoding="bgr8")
+                if len(debug_img.shape) == 2:
+                    out = self.bridge.cv2_to_imgmsg(debug_img, encoding="mono8")
                 else:
-                    dbg = cv_image.copy()
-                    H, W = dbg.shape[:2]
-                    for t in (targets or []):
-                        u_px = int(getattr(t, "u_norm", 0.5) * W)
-                        v_px = int(getattr(t, "v_norm", 0.5) * H)
-                        cv2.circle(dbg, (u_px, v_px), 12, (0, 255, 0), 2)
-                    out = self.bridge.cv2_to_imgmsg(dbg, encoding="bgr8")
+                    out = self.bridge.cv2_to_imgmsg(debug_img, encoding="bgr8")
 
                 out.header = msg.header
                 self.processed_image_pub.publish(out)
             except Exception as e:
                 self.get_logger().error(f"Overlay yayın hatası: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                
     # ---------- Dinamik Parametreler ----------
     def _on_param_update(self, params):
-        reload_yolo = False
-
         for p in params:
+
             if p.name == "publish_overlay":
                 self.publish_overlay = bool(p.value)
 
@@ -269,26 +228,6 @@ class VisionProcessorNode(Node):
                     return SetParametersResult(False, "rectangle HSV 3 elemanlı olmalı")
                 self.r_detector = RectangleDetector(color_lower=r_lower, color_upper=r_upper)
 
-            if p.name.startswith("yolo."):
-                reload_yolo = True
-        
-        if reload_yolo:
-            if not _HAS_YOLO:
-                self.t_detector = None
-                return SetParametersResult(successful=False, reason="YOLO desteklenmiyor")
-
-            try:
-                self.t_detector = TankDetector(
-                    model_path=self.get_parameter("yolo.model_path").value,
-                    conf_thres=float(self.get_parameter("yolo.conf_thres").value),
-                    iou_thres=float(self.get_parameter("yolo.iou_thres").value),
-                    classes=self._get_int_list_param("yolo.classes", []),
-                    device=self.get_parameter("yolo.device").value,
-                )
-            except Exception as e:
-                self.get_logger().error(f"TankDetector başlatılamadı: {e}")
-                self.t_detector = None
-                return SetParametersResult(False, str(e))
         return SetParametersResult(successful=True)
 
 
