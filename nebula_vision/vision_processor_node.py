@@ -74,8 +74,8 @@ class VisionProcessorNode(Node):
         info_qos.reliability = QoSReliabilityPolicy.RELIABLE
         info_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
 
-        vision_qos = QoSProfile(depth=1)
-        vision_qos.reliability = QoSReliabilityPolicy.BEST_EFFORT
+        target_qos = QoSProfile(depth=1)
+        target_qos.reliability = QoSReliabilityPolicy.BEST_EFFORT
 
         debug_qos = QoSProfile(depth=1)
         debug_qos.reliability = QoSReliabilityPolicy.BEST_EFFORT
@@ -92,8 +92,8 @@ class VisionProcessorNode(Node):
         self.info_sub = self.create_subscription(CameraInfo, "/camera/camera_info", self.info_callback, info_qos)
 
         # ---------- Publishers ----------
-        self.balloon_pub = self.create_publisher(BalloonArray, "/vision/balloons", vision_qos)
-        self.rectangle_pub = self.create_publisher(RectangleArray, "/vision/rectangles", vision_qos)
+        self.balloon_pub = self.create_publisher(BalloonArray, "/vision/balloons", target_qos)
+        self.rectangle_pub = self.create_publisher(RectangleArray, "/vision/rectangles", target_qos)
         self.processed_image_pub = self.create_publisher(Image, "/vision/image_processed", debug_qos)
 
         # Dinamik parametre callback
