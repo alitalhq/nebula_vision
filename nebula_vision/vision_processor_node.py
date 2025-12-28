@@ -33,7 +33,7 @@ class VisionProcessorNode(Node):
         super().__init__("vision_processor_node")
 
         # ---------- Parametreler ----------
-        self.declare_parameter("publish_overlay", True)
+        self.declare_parameter("publish_overlay", False)
         self.declare_parameter("skip_n_frames", 0)
 
         # Kırmızı balon HSV range
