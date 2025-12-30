@@ -41,8 +41,8 @@ class CameraDriverNode(Node):
         self.declare_parameter("frame_rate", 30.0)
         self.declare_parameter("camera_info_url", "package://nebula_vision/calib/internal.yaml")
         self.declare_parameter("frame_id", "internal_camera_optical_frame") # kalibrasyondan sonra düzeltmeyi unutma
-        self.declare_parameter("image_width", 640)
-        self.declare_parameter("image_height", 480)
+        self.declare_parameter("image_width", 1280)
+        self.declare_parameter("image_height", 720)
         self.declare_parameter("fourcc", "MJPG")
 
         #durum bayrakları

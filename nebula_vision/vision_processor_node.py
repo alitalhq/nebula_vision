@@ -20,8 +20,6 @@ import cv2
 
 # Sadece color detector kullanılacak
 from .detectors.balloon_detector import BalloonDetector
-from .detectors.rectangle_detector import RectangleDetector
-
 
 class VisionProcessorNode(Node):
     """
@@ -33,15 +31,15 @@ class VisionProcessorNode(Node):
         super().__init__("vision_processor_node")
 
         # ---------- Parametreler ----------
-        self.declare_parameter("publish_overlay", False)
+        self.declare_parameter("publish_overlay", True)
         self.declare_parameter("skip_n_frames", 0)
 
         # Kırmızı balon HSV range
         self.declare_parameter("balloon_lower_hsv", [0, 100, 100])
         self.declare_parameter("balloon_upper_hsv", [10, 255, 255])
 
-        self.declare_parameter("rectangle_lower_hsv", [0, 100, 100])
-        self.declare_parameter("rectangle_upper_hsv", [10, 255, 255])
+        self.declare_parameter("rectangle_lower_hsv", [100, 100, 100])
+        self.declare_parameter("rectangle_upper_hsv", [130, 255, 255])
 
         self.bridge = CvBridge()
         self.frame_counter = 0
@@ -58,13 +56,10 @@ class VisionProcessorNode(Node):
         # Dedektör
         b_lower = self._get_int_list_param("balloon_lower_hsv", [0, 100, 100])
         b_upper = self._get_int_list_param("balloon_upper_hsv", [10, 255, 255])
-        self.b_detector = BalloonDetector(color_lower=b_lower, color_upper=b_upper)
-        self.get_logger().info(f"BalloonDetector aktif: b_lower={b_lower}, b_upper={b_upper}")
-
-        r_lower = self._get_int_list_param("rectangle_lower_hsv", [0, 100, 100])
-        r_upper = self._get_int_list_param("rectangle_upper_hsv", [10, 255, 255])
-        self.r_detector = RectangleDetector(color_lower=r_lower, color_upper=r_upper)
-        self.get_logger().info(f"RectangleDetector aktif: r_lower={r_lower}, r_upper={r_upper}")
+        r_lower = self._get_int_list_param("rectangle_lower_hsv", [100, 100, 100])
+        r_upper = self._get_int_list_param("rectangle_upper_hsv", [130, 255, 255])
+        self.b_detector = BalloonDetector(balloon_lower=b_lower, balloon_upper=b_upper, rectangle_lower=r_lower, rectangle_upper=r_upper)
+        self.get_logger().info(f"BalloonDetector aktif")
 
         # ---------- QoS ----------
         image_qos = QoSProfile(depth=1)
@@ -159,14 +154,10 @@ class VisionProcessorNode(Node):
         except Exception as e:
             self.get_logger().error(f"CV Bridge hatası: {e}")
             return
+        
+        balloons, debug_img, rect_center = self.b_detector.detect(cv_image, msg.header)
 
         if self.gimbal_mode == GimbalMode.MODE_LASER:
-            try:
-                balloons, debug_img = self.b_detector.detect(cv_image, msg.header)
-            except Exception as e:
-                self.get_logger().error(f"Balloon detector çalışma hatası: {e}")
-                return
-            
             if balloons:
                 b_tarr = BalloonArray()
                 b_tarr.header = msg.header
@@ -174,16 +165,7 @@ class VisionProcessorNode(Node):
                 self.balloon_pub.publish(b_tarr)
             
         elif self.gimbal_mode == GimbalMode.MODE_SEARCH:
-            try:
-                rectangles, debug_img = self.r_detector.detect(cv_image, msg.header)
-            except Exception as e:
-                self.get_logger().error(f"Rectangle detector çalışma hatası: {e}")
-                return
-            if rectangles:
-                r_tarr = RectangleArray()
-                r_tarr.header = msg.header
-                r_tarr.rectangles = rectangles
-                self.rectangle_pub.publish(r_tarr)
+            pass #sonra doldur
 
         # Debug görüntüsü
         if self.publish_overlay and debug_img is not None:
@@ -222,8 +204,8 @@ class VisionProcessorNode(Node):
                 self.b_detector = BalloonDetector(color_lower=b_lower, color_upper=b_upper)
 
             if p.name in ("rectangle_lower_hsv", "rectangle_upper_hsv"):
-                r_lower = self._get_int_list_param("rectangle_lower_hsv", [0, 100, 100])
-                r_upper = self._get_int_list_param("rectangle_upper_hsv", [10, 255, 255])
+                r_lower = self._get_int_list_param("rectangle_lower_hsv", [100, 100, 100])
+                r_upper = self._get_int_list_param("rectangle_upper_hsv", [130, 255, 255])
                 if len(r_lower) != 3 or len(r_upper) != 3:
                     return SetParametersResult(False, "rectangle HSV 3 elemanlı olmalı")
                 self.r_detector = RectangleDetector(color_lower=r_lower, color_upper=r_upper)
