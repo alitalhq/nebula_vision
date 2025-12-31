@@ -17,6 +17,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from nebula_interfaces.msg import BalloonArray, RectangleArray, GimbalMode
 from cv_bridge import CvBridge
 import cv2
+import time
 
 # Sadece color detector kullanılacak
 from .detectors.balloon_detector import BalloonDetector
@@ -135,7 +136,7 @@ class VisionProcessorNode(Node):
 
     # ---------- Image ----------
     def image_callback(self, msg: Image):
-
+        start_time = time.perf_counter()
         debug_img = None
 
         if self.skip_n > 0 and (self.frame_counter % (self.skip_n + 1)) != 0:
@@ -156,6 +157,11 @@ class VisionProcessorNode(Node):
             return
         
         balloons, debug_img, rect_center = self.b_detector.detect(cv_image, msg.header)
+
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        if self.frame_counter % 30 == 0:
+            self.get_logger().info(f"Yazılım İşlem Süresi: {duration_ms:.2f} ms")
 
         if self.gimbal_mode == GimbalMode.MODE_LASER:
             if balloons:
@@ -201,14 +207,15 @@ class VisionProcessorNode(Node):
                 b_upper = self._get_int_list_param("balloon_upper_hsv", [10, 255, 255])
                 if len(b_lower) != 3 or len(b_upper) != 3:
                     return SetParametersResult(False, "balloon HSV 3 elemanlı olmalı")
-                self.b_detector = BalloonDetector(color_lower=b_lower, color_upper=b_upper)
+                self.b_detector = BalloonDetector(balloon_lower=b_lower, balloon_upper=b_upper, rectangle_lower=r_lower, rectangle_upper=r_upper)
+
 
             if p.name in ("rectangle_lower_hsv", "rectangle_upper_hsv"):
                 r_lower = self._get_int_list_param("rectangle_lower_hsv", [100, 100, 50])
                 r_upper = self._get_int_list_param("rectangle_upper_hsv", [130, 255, 255])
                 if len(r_lower) != 3 or len(r_upper) != 3:
                     return SetParametersResult(False, "rectangle HSV 3 elemanlı olmalı")
-                self.r_detector = RectangleDetector(color_lower=r_lower, color_upper=r_upper)
+                self.b_detector = BalloonDetector(balloon_lower=b_lower, balloon_upper=b_upper, rectangle_lower=r_lower, rectangle_upper=r_upper)
 
         return SetParametersResult(successful=True)
 

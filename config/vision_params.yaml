@@ -1,0 +1,8 @@
+vision_processor_node:
+  ros__parameters:
+    publish_overlay: true
+    skip_n_frames: 0
+    balloon_lower_hsv: [0, 100, 50]
+    balloon_upper_hsv: [10, 255, 255]
+    rectangle_lower_hsv: [100, 100, 50]
+    rectangle_upper_hsv: [130, 255, 255]
