@@ -57,7 +57,7 @@ class BalloonDetector:
         balloons = []
         for idx, c in enumerate(contours):
             area = cv2.contourArea(c)
-            if area < 200: continue
+            if area < 100: continue
 
             perimeter = cv2.arcLength(c, True)
             if perimeter == 0: continue 
