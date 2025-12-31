@@ -35,10 +35,10 @@ class VisionProcessorNode(Node):
         self.declare_parameter("skip_n_frames", 0)
 
         # Kırmızı balon HSV range
-        self.declare_parameter("balloon_lower_hsv", [0, 100, 100])
+        self.declare_parameter("balloon_lower_hsv", [0, 100, 50])
         self.declare_parameter("balloon_upper_hsv", [10, 255, 255])
 
-        self.declare_parameter("rectangle_lower_hsv", [100, 100, 100])
+        self.declare_parameter("rectangle_lower_hsv", [100, 100, 50])
         self.declare_parameter("rectangle_upper_hsv", [130, 255, 255])
 
         self.bridge = CvBridge()
@@ -54,9 +54,9 @@ class VisionProcessorNode(Node):
         self.skip_n = int(self.get_parameter("skip_n_frames").value)
 
         # Dedektör
-        b_lower = self._get_int_list_param("balloon_lower_hsv", [0, 100, 100])
+        b_lower = self._get_int_list_param("balloon_lower_hsv", [0, 100, 50])
         b_upper = self._get_int_list_param("balloon_upper_hsv", [10, 255, 255])
-        r_lower = self._get_int_list_param("rectangle_lower_hsv", [100, 100, 100])
+        r_lower = self._get_int_list_param("rectangle_lower_hsv", [100, 100, 50])
         r_upper = self._get_int_list_param("rectangle_upper_hsv", [130, 255, 255])
         self.b_detector = BalloonDetector(balloon_lower=b_lower, balloon_upper=b_upper, rectangle_lower=r_lower, rectangle_upper=r_upper)
         self.get_logger().info(f"BalloonDetector aktif")
@@ -197,14 +197,14 @@ class VisionProcessorNode(Node):
                     return SetParametersResult(successful=False, reason="skip_n_frames tamsayı olmalı")
 
             if p.name in ("balloon_lower_hsv", "balloon_upper_hsv"):
-                b_lower = self._get_int_list_param("balloon_lower_hsv", [0, 100, 100])
+                b_lower = self._get_int_list_param("balloon_lower_hsv", [0, 100, 50])
                 b_upper = self._get_int_list_param("balloon_upper_hsv", [10, 255, 255])
                 if len(b_lower) != 3 or len(b_upper) != 3:
                     return SetParametersResult(False, "balloon HSV 3 elemanlı olmalı")
                 self.b_detector = BalloonDetector(color_lower=b_lower, color_upper=b_upper)
 
             if p.name in ("rectangle_lower_hsv", "rectangle_upper_hsv"):
-                r_lower = self._get_int_list_param("rectangle_lower_hsv", [100, 100, 100])
+                r_lower = self._get_int_list_param("rectangle_lower_hsv", [100, 100, 50])
                 r_upper = self._get_int_list_param("rectangle_upper_hsv", [130, 255, 255])
                 if len(r_lower) != 3 or len(r_upper) != 3:
                     return SetParametersResult(False, "rectangle HSV 3 elemanlı olmalı")

@@ -24,17 +24,20 @@ class BalloonDetector:
         blue_mask = cv2.inRange(hsv, self.blue_lower, self.blue_upper)
         blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        target_rect = None # (x, y, w, h)
+        rotated_box_points = None # (x, y, w, h)
         rect_center = None # (u_norm, v_norm)
 
         if blue_contours:
             best_c = max(blue_contours, key=cv2.contourArea)
             if cv2.contourArea(best_c) > 500:
-                target_rect = cv2.boundingRect(best_c)
-                rx, ry, rw, rh = target_rect
-                rect_center = (float((rx + rw/2)/W), float((ry + rh/2)/H))
+                target_rect = cv2.minAreaRect(best_c)
+                (cx, cy), (rw, rh), angle = target_rect
+                rect_center = (float((cx)/W), float((cy)/H))
+
+                rotated_box_points = cv2.boxPoints(target_rect)
+                rotated_box_points = np.intp(rotated_box_points)
                 # Dikdörtgen çevresini yeşil çiz
-                cv2.rectangle(debug, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), 2)
+                cv2.drawContours(debug, [rotated_box_points], 0, (0, 255, 0), 2)
 
         # --- 2. Kırmızı Balonları Bul ---
         if self._is_red():
@@ -69,9 +72,10 @@ class BalloonDetector:
 
             # İçeride mi kontrolü
             is_inside = False
-            if target_rect:
-                rx, ry, rw, rh = target_rect
-                if rx < x < rx + rw and ry < y < ry + rh:
+            if rotated_box_points is not None:
+                dist = cv2.pointPolygonTest(rotated_box_points.astype(np.float32), (float(x), float(y)), False)
+
+                if dist >= 0:
                     is_inside = True
 
             if is_inside:
@@ -81,10 +85,17 @@ class BalloonDetector:
                 b.confidence = float(confidence) 
                 balloons.append(b)
                 # İçerideyse YEŞİL
-                cv2.circle(debug, (int(x), int(y)), int(radius), (0, 255, 0), 2)
+                center = (int(x), int(y))
+                cv2.circle(debug, center, int(radius), (0, 255, 0), 2)
+                cv2.circle(debug, center, 3, (0, 255, 0), -1) 
+
+
+
             else:
                 # Dışarıdaysa MAVİ
-                cv2.circle(debug, (int(x), int(y)), int(radius), (255, 0, 0), 2)
+                center = (int(x), int(y))
+                cv2.circle(debug, center, int(radius), (255, 0, 0), 2)
+                cv2.circle(debug, center, 3, (255, 0, 0), -1) 
 
         # Nişangah
         cv2.line(debug, (W//2-12, H//2), (W//2+12, H//2), (0, 255, 0), 2)
